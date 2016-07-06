@@ -50,3 +50,6 @@ oauth, github = enable_github_oauth(app.config.get('GITHUB_OAUTH_ENABLE'))
 
 
 from app import views, models
+from app.models2 import DomainTemplateRecord, DomainTemplate 
+from app.views2 import DomainTemplate
+
