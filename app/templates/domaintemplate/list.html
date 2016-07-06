@@ -17,6 +17,26 @@
 {% block content %}
  <!-- Main content -->
     <section class="content">
+    {% with errors = get_flashed_messages(category_filter=["error"]) %} {% if errors %}
+<div class="row">
+	<div class="col-md-12">
+		<div class="alert alert-danger alert-dismissible">
+			<button type="button" class="close" data-dismiss="alert"
+				aria-hidden="true">&times;</button>
+			<h4>
+				<i class="icon fa fa-ban"></i> Error!
+			</h4>
+			<div class="alert-message block-message error">
+				<a class="close" href="#">x</a>
+				<ul>
+					{%- for msg in errors %}
+					<li>{{ msg }}</li> {% endfor -%}
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %} {% endwith %}
       <div class="row">
         <div class="col-xs-12">
           <div class="box">
@@ -54,10 +74,18 @@
                     {{ template.records|count }}
                   </td>
                   <td>
-                    Edit button
+                  <a href="{{ url_for('edit_template', template=template.name) }}">
+                    <button type="button" class="btn btn-flat btn-warning button_edit" id="">
+                                            Edit&nbsp;<i class="fa fa-edit"></i>
+                                        </button>
+                                        </a>
                   </td>
                   <td>
-                    Delete button
+                  	<a href="{{ url_for('delete_template', template=template.name) }}">
+                   		<button type="button" class="btn btn-flat btn-danger button_delete" id="">
+                    		  Delete&nbsp;<i class="fa fa-trash"></i>
+                   		</button>
+                   	</a>
                   </td>
                 </tr>
                 {% endfor %}

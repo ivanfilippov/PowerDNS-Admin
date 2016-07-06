@@ -18,6 +18,18 @@ class DomainTemplate(db.Model):
         self.name = name
         self.description = description
         
+    def replace_records(self, records):
+        try:
+            self.records = []
+            for record in records:
+                self.records.append(record)
+            db.session.commit()
+            return {'status': 'ok', 'msg': 'Template records have been modified'}
+        except Exception, e:
+            logging.error('Cannot create template records' + str(e))
+            db.session.rollback()
+            return {'status': 'error', 'msg': 'Can not create template records'}
+        
     def create(self):
         try:
             db.session.add(self)
@@ -27,3 +39,15 @@ class DomainTemplate(db.Model):
             logging.error('Can not update domain template table.' + str(e))
             db.session.rollback()
             return {'status': 'error', 'msg': 'Can not update domain template table'}
+        
+    def delete_template(self):
+        try:
+            self.records = []
+            db.session.delete(self)
+            db.session.commit()
+            return {'status': 'ok', 'msg': 'Template has been deleted'}
+        except Exception, e:
+            logging.error('Can not delete domain template.' + str(e))
+            db.session.rollback()
+            return {'status': 'error', 'msg': 'Can not delete domain template'}
+            

@@ -51,3 +51,66 @@ def create_template():
             print traceback.format_exc()
             return redirect(url_for('error', code=500))
         return redirect(url_for('templates'))
+
+@app.route('/template/<string:template>/edit', methods=['GET'])
+@login_required
+@admin_role_required
+def edit_template(template):
+    try:
+        t = DomainTemplate.query.filter(DomainTemplate.name == template).first()
+        if t != None:
+            return render_template('domaintemplate/edit.html', template=t, editable_records=app.config['RECORDS_ALLOW_EDIT'])
+    except Exception, e:
+        print traceback.format_exc()
+        return redirect(url_for('error', code=500))
+    return redirect(url_for('templates'))
+
+@app.route('/template/<string:template>/apply', methods=['POST'], strict_slashes=False)
+@login_required
+def apply_records(template):
+    try:
+        pdata = request.data
+        jdata = json.loads(pdata)
+        records = []
+
+        for j in jdata:
+            name = '@' if j['record_name'] in ['@', ''] else j['record_name']
+            type = j['record_type']
+            data = j['record_data']
+            disabled = True if j['record_status'] == 'Disabled' else False
+            ttl = int(j['record_ttl']) if j['record_ttl'] else 3600
+            
+            dtr = DomainTemplateRecord(name=name,type=type,data=data,status=disabled,ttl=ttl)
+            records.append(dtr)
+
+        t = DomainTemplate.query.filter(DomainTemplate.name == template).first()
+        result = t.replace_records(records)
+        if result['status'] == 'ok':
+            history = History(msg='Apply domain template record changes to domain template %s' % template, detail=str(jdata), created_by=current_user.username)
+            history.add()
+            return make_response(jsonify( result ), 200)
+        else:
+            return make_response(jsonify( result ), 400)
+    except:
+        print traceback.format_exc()
+        return make_response(jsonify( {'status': 'error', 'msg': 'Error when applying new changes'} ), 500)
+
+@app.route('/template/<string:template>/delete', methods=['GET'])
+@login_required
+@admin_role_required
+def delete_template(template):
+    try:
+        t = DomainTemplate.query.filter(DomainTemplate.name == template).first()
+        if t != None:
+            result = t.delete_template()
+            if result['status'] == 'ok':
+                history = History(msg='Deleted domain template %s' % template, detail=str({'name': template}), created_by=current_user.username)
+                history.add()
+                return redirect(url_for('templates'))
+            else:
+                flash(result['msg'], 'error')
+                return redirect(url_for('templates'))
+    except Exception, e:
+        print traceback.format_exc()
+        return redirect(url_for('error', code=500))
+    return redirect(url_for('templates'))
