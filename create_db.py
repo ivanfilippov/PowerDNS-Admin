@@ -5,6 +5,8 @@ from config import SQLALCHEMY_DATABASE_URI
 from config import SQLALCHEMY_MIGRATE_REPO
 from app import db
 from app.models import Role, Setting
+from app.models2.DomainTemplate import *
+from app.models2.DomainTemplateRecord import *
 import os.path
 import time
 import sys
@@ -65,6 +67,23 @@ def init_settings(db, setting_names):
     for setting in settings:
         db.session.add(setting)
 
+def init_domain_templates(db, domain_template_names):
+
+    # Get key name of data
+    name_of_domain_templates = map(lambda r: r.name, domain_template_names)
+
+    # Query to get current data
+    rows = db.session.query(DomainTemplate).filter(DomainTemplate.name.in_(name_of_domain_templates)).all()
+
+    # Check which data that need to insert
+    name_of_rows = map(lambda r: r.name, rows)
+    domain_templates = filter(lambda r: r.name not in name_of_rows, domain_template_names)
+
+    # Insert data
+    for domain_template in domain_templates:
+        db.session.add(domain_template)
+
+
 def init_records():
     # Create initial user roles and turn off maintenance mode
     init_roles(db, [
@@ -78,6 +97,12 @@ def init_records():
         Setting('login_ldap_first', 'True'),
         Setting('default_record_table_size', '15'),
         Setting('default_domain_table_size', '10')
+    ])
+    #TODO: add sample records to sample templates
+    init_domain_templates(db, [
+        DomainTemplate('basic_template_1', 'Basic Template #1'),
+        DomainTemplate('basic_template_2', 'Basic Template #2'),
+        DomainTemplate('basic_template_3', 'Basic Template #3')
     ])
 
     db_commit = db.session.commit()

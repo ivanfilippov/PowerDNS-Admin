@@ -16,6 +16,8 @@ from werkzeug import secure_filename
 from werkzeug.security import gen_salt
 
 from .models import User, Domain, Record, Server, History, Anonymous, Setting, DomainSetting
+from .models2.DomainTemplate import *
+from .models2.DomainTemplateRecord import *
 from app import app, login_manager, github
 from lib import utils
 
@@ -322,10 +324,12 @@ def domain(domain_name):
 @login_required
 @admin_role_required
 def domain_add():
+    templates = DomainTemplate.query.all()
     if request.method == 'POST':
         try:
             domain_name = request.form.getlist('domain_name')[0]
             domain_type = request.form.getlist('radio_type')[0]
+            domain_template = request.form.getlist('domain_template')[0]
             soa_edit_api = request.form.getlist('radio_type_soa_edit_api')[0]
 
             if ' ' in domain_name or not domain_name or not domain_type:
@@ -343,12 +347,29 @@ def domain_add():
             if result['status'] == 'ok':
                 history = History(msg='Add domain %s' % domain_name, detail=str({'domain_type': domain_type, 'domain_master_ips': domain_master_ips}), created_by=current_user.username)
                 history.add()
+                if domain_template != 0:
+                    template = DomainTemplate.query.filter(DomainTemplate.id == domain_template).first()
+                    template_records = DomainTemplateRecord.query.filter(DomainTemplateRecord.template_id == domain_template).all()
+                    record_data = []
+                    for template_record in template_records:
+                        record_row = {'record_data': template_record.data, 'record_name': template_record.name, 'record_status': template_record.status, 'record_ttl': template_record.ttl, 'record_type': template_record.type}
+                        record_data.append(record_row)
+                    
+                    r = Record()
+                    result = r.apply(domain_name, record_data)
+                    if result['status'] == 'ok':
+                        history = History(msg='Applying template %s to %s, created records successfully.' % (template.name,domain_name), detail=str(result), created_by=current_user.username)
+                        history.add()
+                    else:
+                        history = History(msg='Applying template %s to %s, FAILED to created records.' % (template.name,domain_name), detail=str(result), created_by=current_user.username)
+                        history.add()
+
                 return redirect(url_for('dashboard'))
             else:
                 return render_template('errors/400.html', msg=result['msg']), 400
         except:
             return redirect(url_for('error', code=500))
-    return render_template('domain_add.html')
+    return render_template('domain_add.html', templates=templates)
 
 
 @app.route('/admin/domain/<string:domain_name>/delete', methods=['GET'])
