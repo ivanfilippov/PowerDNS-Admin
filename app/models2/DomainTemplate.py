@@ -8,13 +8,18 @@ class DomainTemplate(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(255), index=True, unique=True)
     description = db.Column(db.String(255))
-    records = db.relationship('DomainTemplateRecord', back_populates='template')
+    records = db.relationship('DomainTemplateRecord', back_populates='template', cascade="all, delete-orphan")
     
     def __repr__(self):
         return '<DomainTemplate %s>' % self.name
-    
-    def init(self,id=None,name=None,description=None):
+   
+    def __init__(self,id=None,name=None,description=None):
         self.id = id
+        self.name = name
+        self.description = description
+        
+    def __init__(self,name=None,description=None):
+        self.id = None
         self.name = name
         self.description = description
         
